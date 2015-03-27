@@ -7,7 +7,8 @@ QVector<int> amplitudesToSquares(QByteArray in) {
     result.append(in.at(0));
 
     for (int i = 1; i < in.size(); i++) {
-        if (in.at(i) * in.at(i-1) < 0) {
+        if ((in.at(i) >= 0 && in.at(i-1) < 0)
+                || (in.at(i) < 0 && in.at(i-1) >= 0)) {
             result.append(in.at(i));
         } else {
             result[result.size() - 1] += in.at(i);
@@ -23,8 +24,9 @@ QVector<int> squaresToRawBits(QVector<int> in) {
         squares += abs(in.at(i));
     }
     float avgSquare = (float)squares / (float)(in.size());
-
     QVector<int> result = QVector<int>();
+
+    int error_count = 0;
     for (int i = 0; i < in.size(); i++) {
         int currentBit = in.at(i) > 0 ? 1 : 0;
 
@@ -39,7 +41,7 @@ QVector<int> squaresToRawBits(QVector<int> in) {
     return result;
 }
 
-QVector<int> rawBitsToLogicalBits(QVector<int> in) {
+QVector<int> rawBitsToLogicalBits(QVector<int> in, int* errors) {
     QVector<int> result = QVector<int>();
 
     int i;
@@ -50,16 +52,10 @@ QVector<int> rawBitsToLogicalBits(QVector<int> in) {
         } else if (in.at(i) == 0 && in.at(i+1) == 1) {
             result.append(1);
         } else {
-//            std::cout << "Invalid Manchester code found at pos " << i << ". Skipping..." << std::endl;
             i += -1;
             error_count ++;
         }
-        if (i == in.size() - 3) {
-            std::cout << "Not parsed till the end." << std::endl;
-        }
     }
-    if (error_count > 0) {
-        std::cout << "Errors: " << error_count << std::endl;
-    }
+    *errors = error_count;
     return result;
 }

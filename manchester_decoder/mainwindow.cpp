@@ -3,6 +3,7 @@
 
 #include <QFileDialog>
 #include <QStandardPaths>
+#include <iostream>
 #include "decoder.h"
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -57,7 +58,9 @@ void MainWindow::on_decodePushButton_clicked()
 
     int BUFLEN = 4096 * wavFile.format().bytesPerFrame();
     QByteArray buffer = QByteArray(BUFLEN, 0);
-    for (int var = 0; var < BUFLEN; var += wavFile.format().bytesPerFrame()) {
+
+    int total_errors = 0;
+    for (;;) {
         qint64 readed = wavFile.readData(file, buffer, wavFile.format());
 
         QByteArray compressed = QByteArray(BUFLEN / 4, 0);
@@ -67,11 +70,15 @@ void MainWindow::on_decodePushButton_clicked()
 
         QVector<int> squares = amplitudesToSquares(compressed);
         QVector<int> rawBits = squaresToRawBits(squares);
-        QVector<int> logicalBits = rawBitsToLogicalBits(rawBits);
+        int errors = 0;
+        QVector<int> logicalBits = rawBitsToLogicalBits(rawBits, &errors);
 
+        total_errors += errors;
         if (readed < BUFLEN) {
             break;
         }
     }
+
+    std::cout << "Total errors: " << total_errors << std::endl;
     buffer.setRawData(0, BUFLEN);
 }

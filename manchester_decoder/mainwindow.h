@@ -8,7 +8,7 @@ namespace Ui {
 class MainWindow;
 }
 
-#define FILE_INFO_FORMAT "Rate: %1, Channels: %2, %3bit"
+#define FILE_INFO_FORMAT "Rate: %1, Channels: %2, %3bit per frame"
 
 class MainWindow : public QMainWindow
 {
