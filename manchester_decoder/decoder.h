@@ -4,8 +4,8 @@
 #include <QByteArray>
 #include <QVector>
 
-QVector<int> amplitudesToSquares(QByteArray in);
+QVector<int> amplitudesToSquares(QByteArray in, int *offset);
 QVector<int> squaresToRawBits(QVector<int> in);
-QVector<int> rawBitsToLogicalBits(QVector<int> in, int *errors);
+QVector<int> rawBitsToLogicalBits(QVector<int> in, int *errors, int *oddBit);
 
 #endif // DECODER_H

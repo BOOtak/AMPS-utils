@@ -60,18 +60,36 @@ void MainWindow::on_decodePushButton_clicked()
     QByteArray buffer = QByteArray(BUFLEN, 0);
 
     int total_errors = 0;
+
+    QByteArray partial = QByteArray();
+    int offset = 0;
+    int oddBit = -1;
+
     for (;;) {
         qint64 readed = wavFile.readData(file, buffer, wavFile.format());
 
-        QByteArray compressed = QByteArray(BUFLEN / 4, 0);
-        for (int i = 0; i < compressed.size(); i++) {
-            compressed[i] = buffer.at(i * 4 + 1);
+        QByteArray compressed = QByteArray();
+        compressed.insert(0, partial);
+        partial.truncate(0);
+        for (int i = 0; i < readed; i += 4) {
+            compressed.append(buffer.at(i + 1));
         }
 
-        QVector<int> squares = amplitudesToSquares(compressed);
-        QVector<int> rawBits = squaresToRawBits(squares);
+        QVector<int> squares = amplitudesToSquares(compressed, &offset);
+        if (offset > 0) {
+            partial = partial.insert(0, compressed.right(offset));
+            offset = 0;
+        }
+
+        QVector<int> rawBits = QVector<int>();
+        if (oddBit != -1) {
+            rawBits.append(oddBit);
+            oddBit = -1;
+        }
+        rawBits = rawBits + squaresToRawBits(squares);
+
         int errors = 0;
-        QVector<int> logicalBits = rawBitsToLogicalBits(rawBits, &errors);
+        QVector<int> logicalBits = rawBitsToLogicalBits(rawBits, &errors, &oddBit);
 
         total_errors += errors;
         if (readed < BUFLEN) {
