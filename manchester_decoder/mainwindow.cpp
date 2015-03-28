@@ -71,8 +71,12 @@ void MainWindow::on_decodePushButton_clicked()
         QByteArray compressed = QByteArray();
         compressed.insert(0, partial);
         partial.truncate(0);
-        for (int i = 0; i < readed; i += 4) {
-            compressed.append(buffer.at(i + 1));
+        for (int i = 0; i < readed; i += wavFile.format().bytesPerFrame()) {
+            if (wavFile.format().byteOrder() == QAudioFormat::LittleEndian) {
+                compressed.append((buffer.at(i) << 8) + buffer.at(i + 1));
+            } else {
+                compressed.append((buffer.at(i + 1) << 8) + buffer.at(i));
+            }
         }
 
         QVector<int> squares = amplitudesToSquares(compressed, &offset);

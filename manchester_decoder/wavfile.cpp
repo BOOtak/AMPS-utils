@@ -58,13 +58,17 @@ struct RIFFHeader
 
 struct WAVEHeader
 {
-    chunk       descriptor;
     quint16     audioFormat;
     quint16     numChannels;
     quint32     sampleRate;
     quint32     byteRate;
     quint16     blockAlign;
     quint16     bitsPerSample;
+};
+
+struct FACTHeader
+{
+    chunk       descriptor;
 };
 
 struct DATAHeader
@@ -76,6 +80,7 @@ struct CombinedHeader
 {
     RIFFHeader  riff;
     WAVEHeader  wave;
+    chunk       descriptor;
     DATAHeader  data;
 };
 
@@ -97,26 +102,31 @@ bool WavFile::readHeader(QIODevice &device)
     // else, assume that current position is the start of the header
 
     if (result) {
-        CombinedHeader header;
-        result = (device.read(reinterpret_cast<char *>(&header), HeaderLength) == HeaderLength);
+        RIFFHeader riffHeader;
+        result = (device.read(reinterpret_cast<char *>(&riffHeader), sizeof(RIFFHeader)) == sizeof(RIFFHeader));
         if (result) {
-            if ((memcmp(&header.riff.descriptor.id, "RIFF", 4) == 0
-                || memcmp(&header.riff.descriptor.id, "RIFX", 4) == 0)
-                && memcmp(&header.riff.type, "WAVE", 4) == 0
-                && memcmp(&header.wave.descriptor.id, "fmt ", 4) == 0
-                && header.wave.audioFormat == 1 // PCM
+            if ((memcmp(&riffHeader.descriptor.id, "RIFF", 4) == 0
+                || memcmp(&riffHeader.descriptor.id, "RIFX", 4) == 0)
             ) {
-                if (memcmp(&header.riff.descriptor.id, "RIFF", 4) == 0)
+                if (memcmp(&riffHeader.descriptor.id, "RIFF", 4) == 0)
                     m_format.setByteOrder(QAudioFormat::LittleEndian);
                 else
                     m_format.setByteOrder(QAudioFormat::BigEndian);
+            }
 
-                m_format.setChannelCount(qFromLittleEndian<quint16>(header.wave.numChannels));
+            chunk descriptor;
+            result = (device.read(reinterpret_cast<char *>(&descriptor), sizeof(chunk)) == sizeof(chunk));
+            qint32 restSize = descriptor.size - sizeof(WAVEHeader);
+
+            WAVEHeader waveHeader;
+            result = (device.read(reinterpret_cast<char *>(&waveHeader), sizeof(WAVEHeader)) == sizeof(WAVEHeader));
+            if (result) {
+                m_format.setChannelCount(qFromLittleEndian<quint16>(waveHeader.numChannels));
                 m_format.setCodec("audio/pcm");
-                m_format.setSampleRate(qFromLittleEndian<quint32>(header.wave.sampleRate));
-                m_format.setSampleSize(qFromLittleEndian<quint16>(header.wave.bitsPerSample));
+                m_format.setSampleRate(qFromLittleEndian<quint32>(waveHeader.sampleRate));
+                m_format.setSampleSize(qFromLittleEndian<quint16>(waveHeader.bitsPerSample));
 
-                switch(header.wave.bitsPerSample) {
+                switch(waveHeader.bitsPerSample) {
                 case 8:
                     m_format.setSampleType(QAudioFormat::UnSignedInt);
                     break;
@@ -130,6 +140,15 @@ bool WavFile::readHeader(QIODevice &device)
                 m_dataLength = device.size() - HeaderLength;
             } else {
                 result = false;
+            }
+            device.read(restSize);
+            DATAHeader dataHeader;
+            result = (device.read(reinterpret_cast<char *>(&dataHeader), sizeof(DATAHeader)) == sizeof(DATAHeader));
+            if (result) {
+                if (memcmp(&dataHeader.descriptor.id, "fact", 4) == 0) {
+                    device.read(dataHeader.descriptor.size);
+                    device.read(sizeof(DATAHeader));
+                }
             }
         }
     }
@@ -153,9 +172,9 @@ bool WavFile::writeHeader(QIODevice &device)
     strncpy(&header.riff.type[0], "WAVE", 4);
 
     // WAVE header
-    strncpy(&header.wave.descriptor.id[0], "fmt ", 4);
+    strncpy(&header.descriptor.id[0], "fmt ", 4);
     qToLittleEndian<quint32>(quint32(16),
-                             reinterpret_cast<unsigned char*>(&header.wave.descriptor.size));
+                             reinterpret_cast<unsigned char*>(&header.descriptor.size));
     qToLittleEndian<quint16>(quint16(1),
                              reinterpret_cast<unsigned char*>(&header.wave.audioFormat));
     qToLittleEndian<quint16>(quint16(m_format.channelCount()),
@@ -214,11 +233,6 @@ qint64 WavFile::readData(QIODevice &device, QByteArray &buffer,
         outputFormat = m_format;
 
     qint64 result = 0;
-
-    QFile file("wav.txt");
-    file.open(QIODevice::WriteOnly | QIODevice::Text);
-    QTextStream stream;
-    stream.setDevice(&file);
 
     if (isPCMS16LE(outputFormat) && isPCMS16LE(m_format)) {
         QVector<char> inputSample(2 * m_format.channelCount());
