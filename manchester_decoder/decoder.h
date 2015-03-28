@@ -2,10 +2,11 @@
 #define DECODER_H
 
 #include <QByteArray>
+#include <QChar>
 #include <QVector>
 
 QVector<int> amplitudesToSquares(QByteArray in, int *offset);
 QVector<int> squaresToRawBits(QVector<int> in);
-QVector<int> rawBitsToLogicalBits(QVector<int> in, int *errors, int *oddBit);
+QVector<char> rawBitsToLogicalBits(QVector<int> in, bool inversed, int *errors, int *oddBit);
 
 #endif // DECODER_H

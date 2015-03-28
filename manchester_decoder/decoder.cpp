@@ -49,16 +49,16 @@ QVector<int> squaresToRawBits(QVector<int> in) {
     return result;
 }
 
-QVector<int> rawBitsToLogicalBits(QVector<int> in, int* errors, int *oddBit) {
-    QVector<int> result = QVector<int>();
+QVector<char> rawBitsToLogicalBits(QVector<int> in, bool inversed, int* errors, int *oddBit) {
+    QVector<char> result = QVector<char>();
 
     int i;
     int error_count = 0;
     for (i = 0; i < in.size() - 1; i += 2) {
         if (in.at(i) == 1 && in.at(i+1) == 0) {
-            result.append(0);
+            result.append(inversed ? '1' : '0');
         } else if (in.at(i) == 0 && in.at(i+1) == 1) {
-            result.append(1);
+            result.append(inversed ? '0' : '1');
         } else {
             // Error correction.
             //

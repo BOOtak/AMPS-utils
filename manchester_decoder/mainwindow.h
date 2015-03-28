@@ -18,15 +18,25 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+    void setEnabledFileInfo(bool enabled);
+    void clearFileInfo();
+    void setEnabledDecodeOptions(bool enabled);
 private slots:
-    void on_browsePushButton_clicked();
-
-    void on_filePathLineEdit_returnPressed();
 
     void on_decodePushButton_clicked();
     
+    void on_openFilePushButton_clicked();
+
+    void on_inputFilePathLineEdit_returnPressed();
+
+    void on_outputFilePathLineEdit_returnPressed();
+
+    void on_saveFilePushButton_clicked();
+
 private:
     Ui::MainWindow *ui;
+    QString inputfilePath;
+    QString outputFilePath;
 };
 
 #endif // MAINWINDOW_H
