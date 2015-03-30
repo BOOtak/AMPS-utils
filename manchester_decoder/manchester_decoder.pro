@@ -8,6 +8,8 @@ QT       += core gui multimedia
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+QMAKE_LFLAGS_WINDOWS = /SUBSYSTEM:WINDOWS,5.01
+
 TARGET = manchester_decoder
 TEMPLATE = app
 
