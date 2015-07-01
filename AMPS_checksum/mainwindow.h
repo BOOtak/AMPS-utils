@@ -21,6 +21,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QString validateInput(const QString raw, int *removedSymbols);
 };
 
 #endif // MAINWINDOW_H
